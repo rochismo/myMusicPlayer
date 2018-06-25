@@ -151,23 +151,23 @@ public class MainActivity extends ListActivity {
                 }
 
                 case R.id.next: {
-                    int seekto = player.getCurrentPosition() + STEP_VALUE;
-                    if (seekto > player.getDuration()) {
-                        seekto = player.getDuration();
+                    int seekTo = player.getCurrentPosition() + STEP_VALUE;
+                    if (seekTo > player.getDuration()) {
+                        seekTo = player.getDuration();
                     }
                     player.pause();
-                    player.seekTo(seekto);
+                    player.seekTo(seekTo);
                     player.start();
                     break;
                 }
 
                 case R.id.previous: {
-                    int seekto = player.getCurrentPosition() - STEP_VALUE;
-                    if (seekto < 0) {
-                        seekto = 0;
+                    int seekTo = player.getCurrentPosition() - STEP_VALUE;
+                    if (seekTo < 0) {
+                        seekTo = 0;
                     }
                     player.pause();
-                    player.seekTo(seekto);
+                    player.seekTo(seekTo);
                     player.start();
                     break;
                 }
