@@ -1,9 +1,9 @@
 package player.media.com.funcionara;
 
+// Android stuff
 import android.annotation.SuppressLint;
 import android.app.ListActivity;
 import android.database.Cursor;
-import android.database.DatabaseUtils;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
@@ -15,6 +15,7 @@ import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+// Java stuff
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,17 +58,22 @@ public class MainActivity extends ListActivity {
 
         if (null != cursor) {
             cursor.moveToFirst();
+            createSongs(cursor);
             MediaCursorAdapter adapter = new MediaCursorAdapter(this, R.layout.item, cursor);
+            adapter.setSongs(songs);
             setListAdapter(adapter);
-            while (!cursor.isAfterLast()){
-                String title = cursor.getString(8);
-                String author = cursor.getString(12);
-                Integer duration = cursor.getInt(10);
-                Integer id = cursor.getInt(0);
-                if (duration <= 10000) {cursor.moveToNext(); continue;}
-                songs.add(new Song(id, duration, title, author));
-                cursor.moveToNext();
-            }
+        }
+    }
+
+    private void createSongs(Cursor cursor) {
+        while (!cursor.isAfterLast()){
+            String title = cursor.getString(8);
+            String author = cursor.getString(12);
+            Integer duration = cursor.getInt(10);
+            Integer id = cursor.getInt(0);
+            if (duration <= 10000) {cursor.moveToNext(); continue;}
+            songs.add(new Song(id, duration, title, author));
+            cursor.moveToNext();
         }
     }
 
@@ -109,8 +115,8 @@ public class MainActivity extends ListActivity {
         seekBar.setProgress(0);
         player.stop();
         player.reset();
-
         try {
+            // This causes a bug for unknown reasons
             player.setDataSource(file);
             player.prepare();
             player.start();
