@@ -3,6 +3,7 @@ package player.media.com.funcionara;
 import android.annotation.SuppressLint;
 import android.app.ListActivity;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
@@ -15,6 +16,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends ListActivity {
     private static final int UPDATE_FREQUENCY = 500;
@@ -33,6 +36,8 @@ public class MainActivity extends ListActivity {
     private String currentFile = "";
     private boolean isMovingSeekBar = false;
     private final Handler handler = new Handler();
+
+    private List<Song> songs = null;
 
     private final Runnable updatePositionRunnable = new Runnable() {
         @Override
@@ -54,12 +59,28 @@ public class MainActivity extends ListActivity {
             cursor.moveToFirst();
             MediaCursorAdapter adapter = new MediaCursorAdapter(this, R.layout.item, cursor);
             setListAdapter(adapter);
-            prev.setOnClickListener(OnButtonClick);
-            play.setOnClickListener(OnButtonClick);
-            next.setOnClickListener(OnButtonClick);
-            stop.setOnClickListener(OnButtonClick);
-            shuffle.setOnClickListener(OnButtonClick);
+            while (!cursor.isAfterLast()){
+                String title = cursor.getString(8);
+                String author = cursor.getString(12);
+                Integer duration = cursor.getInt(10);
+                Integer id = cursor.getInt(0);
+                if (duration <= 10000) {cursor.moveToNext(); continue;}
+                songs.add(new Song(id, duration, title, author));
+                cursor.moveToNext();
+            }
         }
+    }
+
+    private void setupListeners() {
+        prev.setOnClickListener(OnButtonClick);
+        play.setOnClickListener(OnButtonClick);
+        next.setOnClickListener(OnButtonClick);
+        stop.setOnClickListener(OnButtonClick);
+        shuffle.setOnClickListener(OnButtonClick);
+        player.setOnCompletionListener(onCompletion);
+        player.setOnErrorListener(onError);
+        seekBar.setOnSeekBarChangeListener(seekBarChanged);
+
     }
 
     private void init() {
@@ -70,11 +91,9 @@ public class MainActivity extends ListActivity {
         next = findViewById(R.id.next);
         stop = findViewById(R.id.stop);
         shuffle = findViewById(R.id.shuffle);
-
         player = new MediaPlayer();
-        player.setOnCompletionListener(onCompletion);
-        player.setOnErrorListener(onError);
-        seekBar.setOnSeekBarChangeListener(seekBarChanged);
+        songs = new ArrayList<>();
+        setupListeners();
     }
 
     @Override
