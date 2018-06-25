@@ -11,12 +11,18 @@ public class Song {
     private Integer duration;
     private String author;
     private Integer id;
+    private String fullPath;
 
-    Song(Integer id, Integer duration, String name, String author) {
+    Song(Integer id, Integer duration, String name, String author, String fullPath) {
         this.id = id;
         this.duration = duration;
         this.name = name;
         this.author = author;
+        this.fullPath = fullPath;
+    }
+
+    public String getFullPath() {
+        return fullPath;
     }
 
     public Long getSpecifiedDuration() {
@@ -60,6 +66,7 @@ public class Song {
                 ", duration=" + duration +
                 ", author='" + author + '\'' +
                 ", id=" + id +
+                ", fullPath=" + fullPath +
                 '}';
     }
 }

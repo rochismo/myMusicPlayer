@@ -1,6 +1,7 @@
 package player.media.com.funcionara;
 
 // Android stuff
+
 import android.annotation.SuppressLint;
 import android.app.ListActivity;
 import android.database.Cursor;
@@ -15,14 +16,16 @@ import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-// Java stuff
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+// Java stuff
+
 public class MainActivity extends ListActivity {
     private static final int UPDATE_FREQUENCY = 500;
     private static final int STEP_VALUE = 4000;
+    private final Handler handler = new Handler();
 
     private TextView selectedFile = null;
     private SeekBar seekBar = null;
@@ -34,9 +37,9 @@ public class MainActivity extends ListActivity {
     private ImageButton shuffle = null;
 
     private boolean isStarted = true;
-    private String currentFile = "";
     private boolean isMovingSeekBar = false;
-    private final Handler handler = new Handler();
+    private boolean isShuffled = false;
+    private Song currentSong = null;
 
     private List<Song> songs = null;
 
@@ -52,7 +55,6 @@ public class MainActivity extends ListActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         init();
-
         @SuppressLint("Recycle") Cursor cursor = getContentResolver().query(MediaStore.Audio.Media.
                 EXTERNAL_CONTENT_URI, null, null, null, null);
 
@@ -66,13 +68,17 @@ public class MainActivity extends ListActivity {
     }
 
     private void createSongs(Cursor cursor) {
-        while (!cursor.isAfterLast()){
+        while (!cursor.isAfterLast()) {
             String title = cursor.getString(8);
             String author = cursor.getString(12);
             Integer duration = cursor.getInt(10);
             Integer id = cursor.getInt(0);
-            if (duration <= 10000) {cursor.moveToNext(); continue;}
-            songs.add(new Song(id, duration, title, author));
+            String fullPath = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
+            if (duration <= 10000) {
+                cursor.moveToNext();
+                continue;
+            }
+            songs.add(new Song(id, duration, title, author, fullPath));
             cursor.moveToNext();
         }
     }
@@ -105,19 +111,20 @@ public class MainActivity extends ListActivity {
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
         super.onListItemClick(l, v, position, id);
-        currentFile = (String) v.getTag();
-        startPlay(currentFile);
+        position -= 2;
+        currentSong = songs.get(position);
+        startPlay(currentSong);
     }
 
-    private void startPlay(String file) {
-        Log.i("Selected: ", file);
-        selectedFile.setText(file);
+    private void startPlay(Song song) {
+        Log.i("Selected: ", song.getName());
+        selectedFile.setText(song.getName());
         seekBar.setProgress(0);
         player.stop();
         player.reset();
         try {
             // This causes a bug for unknown reasons
-            player.setDataSource(file);
+            player.setDataSource(song.getFullPath());
             player.prepare();
             player.start();
         } catch (IllegalArgumentException | IllegalStateException | IOException e) {
@@ -159,6 +166,12 @@ public class MainActivity extends ListActivity {
         public void onClick(View v) {
             switch (v.getId()) {
                 case R.id.play: {
+                    // If we didn't select a song, we are not going to uselessly throw an exception
+                    final String NO_FILE_SELECTED = "No file Selected";
+                    if (selectedFile.getText().equals(NO_FILE_SELECTED)){
+                        break;
+                    }
+                    // Check for the current status
                     if (player.isPlaying()) {
                         handler.removeCallbacks(updatePositionRunnable);
                         player.pause();
@@ -171,11 +184,13 @@ public class MainActivity extends ListActivity {
                         updatePosition();
                         break;
                     }
-                    startPlay(currentFile);
+                    // We play the very first song
+                    startPlay(songs.get(0));
                     break;
                 }
 
                 case R.id.next: {
+                    // Move to the next song
                     int seekTo = player.getCurrentPosition() + STEP_VALUE;
                     if (seekTo > player.getDuration()) {
                         seekTo = player.getDuration();
@@ -187,6 +202,7 @@ public class MainActivity extends ListActivity {
                 }
 
                 case R.id.previous: {
+                    // Move to previous song
                     int seekTo = player.getCurrentPosition() - STEP_VALUE;
                     if (seekTo < 0) {
                         seekTo = 0;
@@ -198,9 +214,15 @@ public class MainActivity extends ListActivity {
                 }
 
                 case R.id.stop: {
+                    // Just stop
                     if (player.isPlaying()) {
                         stopPlay();
                     }
+                    break;
+                }
+
+                case R.id.shuffle: {
+                    isShuffled = !isShuffled;
                     break;
                 }
             }
@@ -209,7 +231,15 @@ public class MainActivity extends ListActivity {
     private MediaPlayer.OnCompletionListener onCompletion = new MediaPlayer.OnCompletionListener() {
         @Override
         public void onCompletion(MediaPlayer mp) {
+            if (isShuffled) {
+                startPlay(determineNextSong());
+                return;
+            }
             stopPlay();
+        }
+
+        private Song determineNextSong() {
+            return songs.get((int) (Math.random() * songs.size()));
         }
     };
     private MediaPlayer.OnErrorListener onError = new MediaPlayer.OnErrorListener() {

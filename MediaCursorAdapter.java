@@ -1,4 +1,5 @@
 package player.media.com.funcionara;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
@@ -18,7 +19,7 @@ public class MediaCursorAdapter extends SimpleCursorAdapter {
 
     MediaCursorAdapter(Context context, int layout, Cursor c) {
         super(context, layout, c, new String[]{MediaStore.MediaColumns.DISPLAY_NAME,
-                        MediaStore.MediaColumns.TITLE,MediaStore.Audio.AudioColumns.DURATION},
+                        MediaStore.MediaColumns.TITLE, MediaStore.Audio.AudioColumns.DURATION},
                 new int[]{R.id.displayname, R.id.title, R.id.duration});
     }
 
@@ -37,8 +38,7 @@ public class MediaCursorAdapter extends SimpleCursorAdapter {
         // Setup the items
         TextView name = view.findViewById(R.id.displayname);
         TextView duration = view.findViewById(R.id.duration);
-        for (Song song : songs){
-
+        for (Song song : songs) {
             name.setText(song.getName());
             long durationInMS = song.getDuration();
             double durationInMin = ((double) durationInMS / 1000.0) / 60.0;
