@@ -1,4 +1,3 @@
-# My Custom Media Player
 <h1>Description</h1>
 <p>This application is just like a regular media player. But i have added my own touch.
 The list of things it should be able to do when it's finished is the following:
