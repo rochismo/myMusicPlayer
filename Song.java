@@ -12,6 +12,7 @@ public class Song {
     private String author;
     private Integer id;
     private String fullPath;
+    private boolean isSet;
 
     Song(Integer id, Integer duration, String name, String author, String fullPath) {
         this.id = id;
@@ -19,10 +20,19 @@ public class Song {
         this.name = name;
         this.author = author;
         this.fullPath = fullPath;
+        this.isSet = false;
     }
 
     public String getFullPath() {
         return fullPath;
+    }
+
+    public boolean isSet() {
+        return isSet;
+    }
+
+    public void setSet(boolean set) {
+        isSet = set;
     }
 
     public Long getSpecifiedDuration() {

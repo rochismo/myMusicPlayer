@@ -4,6 +4,7 @@ package player.media.com.funcionara;
 
 import android.annotation.SuppressLint;
 import android.app.ListActivity;
+import android.content.Intent;
 import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -15,10 +16,13 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // Java stuff
 
@@ -40,7 +44,8 @@ public class MainActivity extends ListActivity {
     private boolean isMovingSeekBar = false;
     private boolean isShuffled = false;
     private Song currentSong = null;
-
+    private Integer backButtonCount = 0;
+    private Map<Song, Integer> songRelations = null;
     private List<Song> songs = null;
 
     private final Runnable updatePositionRunnable = new Runnable() {
@@ -59,7 +64,6 @@ public class MainActivity extends ListActivity {
                 EXTERNAL_CONTENT_URI, null, null, null, null);
 
         if (null != cursor) {
-            cursor.moveToFirst();
             createSongs(cursor);
             MediaCursorAdapter adapter = new MediaCursorAdapter(this, R.layout.item, cursor);
             adapter.setSongs(songs);
@@ -68,6 +72,8 @@ public class MainActivity extends ListActivity {
     }
 
     private void createSongs(Cursor cursor) {
+        int idx = 0;
+        cursor.moveToFirst();
         while (!cursor.isAfterLast()) {
             String title = cursor.getString(8);
             String author = cursor.getString(12);
@@ -80,6 +86,10 @@ public class MainActivity extends ListActivity {
             }
             songs.add(new Song(id, duration, title, author, fullPath));
             cursor.moveToNext();
+        }
+        for (Song song : songs) {
+            songRelations.put(song, idx);
+            idx++;
         }
     }
 
@@ -106,6 +116,32 @@ public class MainActivity extends ListActivity {
         player = new MediaPlayer();
         songs = new ArrayList<>();
         setupListeners();
+        songRelations = new HashMap<>();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (isMovingSeekBar) {
+            Toast.makeText(this, "Press the back button once again to put the app in the background.", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Press the back button once again to close the application.", Toast.LENGTH_SHORT).show();
+        }
+        checkStatus(backButtonCount, isMovingSeekBar);
+    }
+
+    private void checkStatus(Integer count, boolean seekBar) {
+        if (count >= 1 && !seekBar) {
+            System.exit(0);
+        }
+        if (count >= 1 && seekBar) {
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_HOME);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            this.backButtonCount = 0;
+            return;
+        }
+        backButtonCount++;
     }
 
     @Override
@@ -134,6 +170,7 @@ public class MainActivity extends ListActivity {
         play.setImageResource(android.R.drawable.ic_media_pause);
         updatePosition();
         isStarted = true;
+        isMovingSeekBar = true;
     }
 
     private void stopPlay() {
@@ -143,6 +180,7 @@ public class MainActivity extends ListActivity {
         handler.removeCallbacks(updatePositionRunnable);
         seekBar.setProgress(0);
         isStarted = false;
+        isMovingSeekBar = false;
     }
 
     @Override
@@ -168,7 +206,7 @@ public class MainActivity extends ListActivity {
                 case R.id.play: {
                     // If we didn't select a song, we are not going to uselessly throw an exception
                     final String NO_FILE_SELECTED = "No file Selected";
-                    if (selectedFile.getText().equals(NO_FILE_SELECTED)){
+                    if (selectedFile.getText().equals(NO_FILE_SELECTED)) {
                         break;
                     }
                     // Check for the current status
@@ -191,25 +229,24 @@ public class MainActivity extends ListActivity {
 
                 case R.id.next: {
                     // Move to the next song
-                    int seekTo = player.getCurrentPosition() + STEP_VALUE;
-                    if (seekTo > player.getDuration()) {
-                        seekTo = player.getDuration();
+                    if (isShuffled) {
+                        stopPlay();
+                        break;
                     }
-                    player.pause();
-                    player.seekTo(seekTo);
-                    player.start();
+                    int nextIndex = songRelations.get(currentSong) + 1;
+                    int index = nextIndex >= songs.size() - 1 ? 0 : nextIndex;
+                    startPlay(songs.get(index));
                     break;
                 }
 
                 case R.id.previous: {
-                    // Move to previous song
-                    int seekTo = player.getCurrentPosition() - STEP_VALUE;
-                    if (seekTo < 0) {
-                        seekTo = 0;
+                    if (isShuffled) {
+                        stopPlay();
+                        break;
                     }
-                    player.pause();
-                    player.seekTo(seekTo);
-                    player.start();
+                    int nextIndex = songRelations.get(currentSong) - 1;
+                    int index = nextIndex <= 0 ? songs.size() - 1 : nextIndex;
+                    startPlay(songs.get(index));
                     break;
                 }
 

@@ -47,7 +47,10 @@ public class MediaCursorAdapter extends SimpleCursorAdapter {
                     setScale(2, BigDecimal.ROUND_UP).doubleValue();
 
             duration.setText("" + durationInMin);
-            view.setTag(cursor.getString(cursor.getColumnIndex(MediaStore.MediaColumns.DATA)));
+            if (!song.isSet()){
+                song.setSet(false);
+                view.setTag(song.getFullPath());
+            }
         }
 
     }
