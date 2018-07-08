@@ -1,4 +1,4 @@
-package player.media.com.funcionara;
+package "";
 
 // Android stuff
 
@@ -57,10 +57,10 @@ public class MainActivity extends ListActivity {
     private boolean isShuffled = false;
     private boolean called = false;
 
-    private player.media.com.funcionara.Song currentSong = null;
+    private Song currentSong = null;
     private Integer backButtonCount = 0;
-    private Map<player.media.com.funcionara.Song, Integer> songRelations = null;
-    private List<player.media.com.funcionara.Song> songs = null;
+    private Map<Song, Integer> songRelations = null;
+    private List<Song> songs = null;
 
     private final Runnable updatePositionRunnable = new Runnable() {
         @Override
@@ -85,13 +85,13 @@ public class MainActivity extends ListActivity {
             Integer duration = cursor.getInt(10);
             Integer id = cursor.getInt(0);
             String fullPath = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
-            player.media.com.funcionara.Song song = new player.media.com.funcionara.Song(id, duration, title, author, fullPath);
+            Song song = new Song(id, duration, title, author, fullPath);
             if (!songs.contains(song)){
                 songs.add(song);
             }
             cursor.moveToNext();
         }
-        for (player.media.com.funcionara.Song song : songs) {
+        for (Song song : songs) {
             songRelations.put(song, idx);
             idx++;
         }
@@ -167,7 +167,7 @@ public class MainActivity extends ListActivity {
 
         if (null != cursor) {
             createSongs(cursor);
-            player.media.com.funcionara.MediaCursorAdapter adapter = new player.media.com.funcionara.MediaCursorAdapter(this, R.layout.item, cursor);
+            MediaCursorAdapter adapter = new MediaCursorAdapter(this, R.layout.item, cursor);
             adapter.setSongs(songs);
             setListAdapter(adapter);
         }
@@ -207,7 +207,7 @@ public class MainActivity extends ListActivity {
     }
 
 
-    private void startPlay(player.media.com.funcionara.Song song) {
+    private void startPlay(Song song) {
         Log.i("Selected: ", song.getName());
         selectedFile.setText(song.getName());
         seekBar.setProgress(0);
@@ -333,7 +333,7 @@ public class MainActivity extends ListActivity {
             called = false;
         }
 
-        private player.media.com.funcionara.Song determineNextSong() {
+        private Song determineNextSong() {
             return songs.get((int) (Math.random() * songs.size()));
         }
     };

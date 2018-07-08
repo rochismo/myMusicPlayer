@@ -1,4 +1,4 @@
-package player.media.com.funcionara;
+package "";
 
 public class Song {
 

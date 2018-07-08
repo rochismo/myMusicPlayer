@@ -1,4 +1,4 @@
-package player.media.com.funcionara;
+package "";
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MediaCursorAdapter extends SimpleCursorAdapter {
-    private List<player.media.com.funcionara.Song> songs = new ArrayList<>();
+    private List<Song> songs = new ArrayList<>();
     private Integer index = 0;
 
     MediaCursorAdapter(Context context, int layout, Cursor c) {
@@ -25,11 +25,11 @@ public class MediaCursorAdapter extends SimpleCursorAdapter {
     }
 
 
-    public List<player.media.com.funcionara.Song> getSongs() {
+    public List<Song> getSongs() {
         return songs;
     }
 
-    public void setSongs(List<player.media.com.funcionara.Song> songs) {
+    public void setSongs(List<Song> songs) {
         this.songs = songs;
     }
 
@@ -40,7 +40,7 @@ public class MediaCursorAdapter extends SimpleCursorAdapter {
 
         TextView name = view.findViewById(R.id.displayname);
         TextView duration = view.findViewById(R.id.duration);
-        player.media.com.funcionara.Song song = getSongById(cursor.getInt(0));
+        Song song = getSongById(cursor.getInt(0));
         long durationInMS = song.getDuration();
         double durationInMin = ((double) durationInMS / 1000.0) / 60.0;
 
@@ -53,9 +53,9 @@ public class MediaCursorAdapter extends SimpleCursorAdapter {
         view.setTag(song.getFullPath());
     }
 
-    private player.media.com.funcionara.Song getSongById(int id) {
-        player.media.com.funcionara.Song returnValue = null;
-        for (player.media.com.funcionara.Song song : songs){
+    private Song getSongById(int id) {
+        Song returnValue = null;
+        for (Song song : songs){
             if (song.getId().equals(id)){
                 returnValue = song;
             }
