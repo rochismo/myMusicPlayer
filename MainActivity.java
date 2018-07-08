@@ -2,14 +2,23 @@ package player.media.com.funcionara;
 
 // Android stuff
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.provider.Settings;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
@@ -20,6 +29,7 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +38,10 @@ import java.util.Map;
 
 public class MainActivity extends ListActivity {
     private static final int UPDATE_FREQUENCY = 500;
-    private static final int STEP_VALUE = 4000;
+    private static final String[] REQUIRED_SDK_PERMISSIONS = new String[] {
+            Manifest.permission.READ_EXTERNAL_STORAGE};
     private final Handler handler = new Handler();
+    private final int APP_PERMISSION = 10;
 
     private TextView selectedFile = null;
     private SeekBar seekBar = null;
@@ -43,10 +55,12 @@ public class MainActivity extends ListActivity {
     private boolean isStarted = true;
     private boolean isMovingSeekBar = false;
     private boolean isShuffled = false;
-    private Song currentSong = null;
+    private boolean called = false;
+
+    private player.media.com.funcionara.Song currentSong = null;
     private Integer backButtonCount = 0;
-    private Map<Song, Integer> songRelations = null;
-    private List<Song> songs = null;
+    private Map<player.media.com.funcionara.Song, Integer> songRelations = null;
+    private List<player.media.com.funcionara.Song> songs = null;
 
     private final Runnable updatePositionRunnable = new Runnable() {
         @Override
@@ -59,16 +73,7 @@ public class MainActivity extends ListActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        init();
-        @SuppressLint("Recycle") Cursor cursor = getContentResolver().query(MediaStore.Audio.Media.
-                EXTERNAL_CONTENT_URI, null, null, null, null);
-
-        if (null != cursor) {
-            createSongs(cursor);
-            MediaCursorAdapter adapter = new MediaCursorAdapter(this, R.layout.item, cursor);
-            adapter.setSongs(songs);
-            setListAdapter(adapter);
-        }
+        checkPermissions();
     }
 
     private void createSongs(Cursor cursor) {
@@ -80,14 +85,13 @@ public class MainActivity extends ListActivity {
             Integer duration = cursor.getInt(10);
             Integer id = cursor.getInt(0);
             String fullPath = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA));
-            if (duration <= 10000) {
-                cursor.moveToNext();
-                continue;
+            player.media.com.funcionara.Song song = new player.media.com.funcionara.Song(id, duration, title, author, fullPath);
+            if (!songs.contains(song)){
+                songs.add(song);
             }
-            songs.add(new Song(id, duration, title, author, fullPath));
             cursor.moveToNext();
         }
-        for (Song song : songs) {
+        for (player.media.com.funcionara.Song song : songs) {
             songRelations.put(song, idx);
             idx++;
         }
@@ -102,8 +106,50 @@ public class MainActivity extends ListActivity {
         player.setOnCompletionListener(onCompletion);
         player.setOnErrorListener(onError);
         seekBar.setOnSeekBarChangeListener(seekBarChanged);
-
     }
+
+    protected void checkPermissions() {
+        final List<String> missingPermissions = new ArrayList<String>();
+        // check all required dynamic permissions
+        for (final String permission : REQUIRED_SDK_PERMISSIONS) {
+            final int result = ContextCompat.checkSelfPermission(this, permission);
+            if (result != PackageManager.PERMISSION_GRANTED) {
+                missingPermissions.add(permission);
+            }
+        }
+        if (!missingPermissions.isEmpty()) {
+            // request all missing permissions
+            final String[] permissions = missingPermissions
+                    .toArray(new String[missingPermissions.size()]);
+            ActivityCompat.requestPermissions(this, permissions, APP_PERMISSION);
+        } else {
+            final int[] grantResults = new int[REQUIRED_SDK_PERMISSIONS.length];
+            Arrays.fill(grantResults, PackageManager.PERMISSION_GRANTED);
+            onRequestPermissionsResult(APP_PERMISSION, REQUIRED_SDK_PERMISSIONS,
+                    grantResults);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[],
+                                           @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case APP_PERMISSION:
+                for (int index = permissions.length - 1; index >= 0; --index) {
+                    if (grantResults[index] != PackageManager.PERMISSION_GRANTED) {
+                        // exit the app if one permission is not granted
+                        Toast.makeText(this, "Required permission '" + permissions[index]
+                                + "' not granted, exiting", Toast.LENGTH_LONG).show();
+                        finish();
+                        return;
+                    }
+                }
+                // all permissions were granted
+                init();
+                break;
+        }
+    }
+
 
     private void init() {
         selectedFile = findViewById(R.id.selecteditem);
@@ -115,8 +161,17 @@ public class MainActivity extends ListActivity {
         shuffle = findViewById(R.id.shuffle);
         player = new MediaPlayer();
         songs = new ArrayList<>();
-        setupListeners();
         songRelations = new HashMap<>();
+        @SuppressLint("Recycle") Cursor cursor = getContentResolver().query(MediaStore.Audio.Media.
+                EXTERNAL_CONTENT_URI, null, null, null, null);
+
+        if (null != cursor) {
+            createSongs(cursor);
+            player.media.com.funcionara.MediaCursorAdapter adapter = new player.media.com.funcionara.MediaCursorAdapter(this, R.layout.item, cursor);
+            adapter.setSongs(songs);
+            setListAdapter(adapter);
+        }
+        setupListeners();
     }
 
     @Override
@@ -147,12 +202,12 @@ public class MainActivity extends ListActivity {
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
         super.onListItemClick(l, v, position, id);
-        position -= 2;
         currentSong = songs.get(position);
         startPlay(currentSong);
     }
 
-    private void startPlay(Song song) {
+
+    private void startPlay(player.media.com.funcionara.Song song) {
         Log.i("Selected: ", song.getName());
         selectedFile.setText(song.getName());
         seekBar.setProgress(0);
@@ -229,12 +284,13 @@ public class MainActivity extends ListActivity {
 
                 case R.id.next: {
                     // Move to the next song
+
+                    int nextIndex = songRelations.get(currentSong) + 1;
+                    int index = nextIndex >= songs.size() - 1 ? 0 : nextIndex;
                     if (isShuffled) {
                         stopPlay();
                         break;
                     }
-                    int nextIndex = songRelations.get(currentSong) + 1;
-                    int index = nextIndex >= songs.size() - 1 ? 0 : nextIndex;
                     startPlay(songs.get(index));
                     break;
                 }
@@ -252,6 +308,7 @@ public class MainActivity extends ListActivity {
 
                 case R.id.stop: {
                     // Just stop
+                    called = true;
                     if (player.isPlaying()) {
                         stopPlay();
                     }
@@ -268,14 +325,15 @@ public class MainActivity extends ListActivity {
     private MediaPlayer.OnCompletionListener onCompletion = new MediaPlayer.OnCompletionListener() {
         @Override
         public void onCompletion(MediaPlayer mp) {
-            if (isShuffled) {
+            if (isShuffled && !called) {
                 startPlay(determineNextSong());
                 return;
             }
             stopPlay();
+            called = false;
         }
 
-        private Song determineNextSong() {
+        private player.media.com.funcionara.Song determineNextSong() {
             return songs.get((int) (Math.random() * songs.size()));
         }
     };

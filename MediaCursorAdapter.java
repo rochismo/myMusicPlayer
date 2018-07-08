@@ -15,7 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MediaCursorAdapter extends SimpleCursorAdapter {
-    private List<Song> songs = new ArrayList<>();
+    private List<player.media.com.funcionara.Song> songs = new ArrayList<>();
+    private Integer index = 0;
 
     MediaCursorAdapter(Context context, int layout, Cursor c) {
         super(context, layout, c, new String[]{MediaStore.MediaColumns.DISPLAY_NAME,
@@ -24,11 +25,11 @@ public class MediaCursorAdapter extends SimpleCursorAdapter {
     }
 
 
-    public List<Song> getSongs() {
+    public List<player.media.com.funcionara.Song> getSongs() {
         return songs;
     }
 
-    public void setSongs(List<Song> songs) {
+    public void setSongs(List<player.media.com.funcionara.Song> songs) {
         this.songs = songs;
     }
 
@@ -36,23 +37,30 @@ public class MediaCursorAdapter extends SimpleCursorAdapter {
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
         // Setup the items
+
         TextView name = view.findViewById(R.id.displayname);
         TextView duration = view.findViewById(R.id.duration);
-        for (Song song : songs) {
-            name.setText(song.getName());
-            long durationInMS = song.getDuration();
-            double durationInMin = ((double) durationInMS / 1000.0) / 60.0;
+        player.media.com.funcionara.Song song = getSongById(cursor.getInt(0));
+        long durationInMS = song.getDuration();
+        double durationInMin = ((double) durationInMS / 1000.0) / 60.0;
 
-            durationInMin = new BigDecimal(Double.toString(durationInMin)).
-                    setScale(2, BigDecimal.ROUND_UP).doubleValue();
+        durationInMin = new BigDecimal(Double.toString(durationInMin)).
+                setScale(2, BigDecimal.ROUND_UP).doubleValue();
 
-            duration.setText("" + durationInMin);
-            if (!song.isSet()){
-                song.setSet(false);
-                view.setTag(song.getFullPath());
+        name.setText(song.getName());
+        duration.setText("" + durationInMin);
+
+        view.setTag(song.getFullPath());
+    }
+
+    private player.media.com.funcionara.Song getSongById(int id) {
+        player.media.com.funcionara.Song returnValue = null;
+        for (player.media.com.funcionara.Song song : songs){
+            if (song.getId().equals(id)){
+                returnValue = song;
             }
         }
-
+        return returnValue;
     }
 
     @Override
